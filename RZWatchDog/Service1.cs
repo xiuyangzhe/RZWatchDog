@@ -24,22 +24,26 @@ namespace RZWatchDog
 
         protected override void OnStart(string[] args)
         {
-            var apppath = ConfigurationManager.AppSettings["ProcessPath"];
-            var appname = (new FileInfo(apppath)).Name;
-            
-            Task.Factory.StartNew(() =>
+            var apppaths = ConfigurationManager.AppSettings["ProcessPath"].Split('|');
+            foreach (var apppath in apppaths)
             {
-                while (true)
+                var appname = (new FileInfo(apppath.Split(',')[1])).Name;
+                Task.Factory.StartNew(() =>
                 {
-                    if (!IsProcessExist(appname.Replace(".exe","")))
+                    while (true)
                     {
-                        AppStart(apppath);
-                        //Process.Start(AppDomain.CurrentDomain.BaseDirectory+"CompatiblePrintService.exe");
-                    }
+                        if (!IsProcessExist(appname.Replace(".exe", "")))
+                        {
+                            Thread.Sleep(Convert.ToInt32(apppath.Split(',')[0]));
+                            AppStart(apppath.Split(',')[1]);
+                            //Process.Start(AppDomain.CurrentDomain.BaseDirectory+"CompatiblePrintService.exe");
+                        }
 
-                    Thread.Sleep(2000);
-                }
-            });
+                        Thread.Sleep(2000);
+                    }
+                });
+            }
+
         }
 
         /// <summary>
@@ -64,7 +68,8 @@ namespace RZWatchDog
         {
             try
             {
-
+                //Process.Start(appPath);
+                //return;
                 string appStartPath = appPath;
                 IntPtr userTokenHandle = IntPtr.Zero;
                 ApiDefinitions.WTSQueryUserToken(ApiDefinitions.WTSGetActiveConsoleSessionId(), ref userTokenHandle);
@@ -96,6 +101,22 @@ namespace RZWatchDog
             }
         }
 
+        public string RunCmd(string cmd)
+        {
+            var proc = new Process();
+            proc.StartInfo.CreateNoWindow = false;
+            proc.StartInfo.FileName = "cmd.exe";
+            proc.StartInfo.UseShellExecute = false;
+            proc.StartInfo.RedirectStandardError = true;
+            proc.StartInfo.RedirectStandardInput = true;
+            proc.StartInfo.RedirectStandardOutput = true;
+            proc.Start();
+            proc.StandardInput.WriteLine(cmd);
+            // proc.StandardInput.WriteLine("exit");
+            // string outStr = proc.StandardOutput.ReadToEnd();
+            proc.Close();
+            return string.Empty;
+        }
         protected override void OnStop()
         {
         }
